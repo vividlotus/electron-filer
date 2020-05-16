@@ -87,7 +87,7 @@ $(document).ready(() => {
             let size = entry.size;
             if (entry.isDrive())
             {
-                size = `${Util.size(entry.rawSize, false)} / ${entry.totalSize}`;
+                size = `${Util.size(entry.rawSize, false)} / ${entry.totalSize} (${entry.freeSize})`;
             }
 
             let $dLink = $('<div/>')

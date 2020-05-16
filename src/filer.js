@@ -1,5 +1,7 @@
 const path = require('path');
 const fs = require('fs');
+const { exec } = require('child_process');
+const Encoding = require('encoding-japanese');
 const Env = require(path.resolve('src') + '/env');
 const Type = require(path.resolve('src') + '/type');
 const Drive = require(path.resolve('src') + '/drive');
@@ -40,7 +42,7 @@ class Filer
                 let drive = drives[i];
                 let sizes = await Drive.size(drive).catch(e => { return {}; });
 
-                let entry = this.constructor._factoryDriveEntry(drive, sizes);
+                let entry = this._factoryDriveEntry(drive, sizes);
                 if (entry) results.push(entry);
             }
 
@@ -50,19 +52,42 @@ class Filer
         return fs
             .readdirSync(this.filepath, { withFileTypes: true })
             .reduce((accumulator, dirent) => {
-                let entry = this.constructor._factoryEntry(this.filepath + `/${dirent.name}`);
-
+                let entry = this._factoryEntry(this.filepath + `/${dirent.name}`);
                 if (entry) accumulator.push(entry);
 
                 return accumulator;
             }, []);
     }
 
+    async folderSize(dirpath)
+    {
+        return new Promise((resolve, reject) => {
+            if (!Env.isWin()) reject('windows only.');
+
+            exec(
+                `(Get-ChildItem "${dirpath}" -Recurse -ErrorAction "SilentlyContinue" | Measure-Object -Property Length -Sum).Sum`,
+                { 'shell': 'powershell.exe', encoding: 'Shift_JIS' },
+                (err, stdout, stderr) => {
+                    if (err)
+                    {
+                        reject(err);
+                    }
+                    else
+                    {
+                        stdout = Encoding.convert(stdout, { from: 'SJIS', to: 'UNICODE', type: 'string' });
+                        console.log(`${dirpath} => ${stdout}`);
+                        resolve(stdout);
+                    }
+                }
+            );
+        });
+    }
+
     async open()
     {
     }
 
-    static _factoryEntry(filepath)
+    _factoryEntry(filepath)
     {
         try
         {
@@ -82,7 +107,7 @@ class Filer
         }
     }
 
-    static _factoryDriveEntry(drive, sizes)
+    _factoryDriveEntry(drive, sizes)
     {
         try
         {
@@ -97,12 +122,6 @@ class Filer
             // console.warn(e);
             return null;
         }
-    }
-
-    static folderSize()
-    {
-        // ドライブは指定しないほうがいい
-        // (Get-ChildItem D:/a/b/c/ -Recurse | Measure-Object -Property Length -Sum).Sum
     }
 }
 

@@ -30,6 +30,11 @@ class DriveEntry extends Entry
     {
         return Util.size(this.rawTotalSize);
     }
+
+    get freeSize()
+    {
+        return Util.size(this.rawTotalSize - this.rawSize);
+    }
 }
 
 module.exports = DriveEntry;
